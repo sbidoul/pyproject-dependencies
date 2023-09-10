@@ -45,7 +45,7 @@ def main() -> None:
         help="project directory or pyproject.toml or setup.py",
     )
     parser.add_argument(
-        "--no-isolated",
+        "--no-isolation",
         action="store_true",
         help=(
             "whether or not to invoke the build backend "
@@ -96,7 +96,7 @@ def main() -> None:
         try:
             project_metadata = project_wheel_metadata(
                 project_path,
-                not args.no_isolated,
+                not args.no_isolation,
                 runner=subprocess_runner,
             )
         except BuildBackendException as e:
