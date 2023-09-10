@@ -56,9 +56,12 @@ def main():
         ),
     )
     parser.add_argument(
-        "--include-self",
+        "--no-exclude-self",
         action="store_true",
-        help="whether or not to include the projects themselves in the output",
+        help=(
+            "whether or not to exclude the projects themselves from the output, "
+            "when they depend on each other"
+        ),
     )
     parser.add_argument(
         "--ignore-build-errors",
@@ -126,7 +129,7 @@ def main():
         for dep in project_metadata.get_all("Requires-Dist", []):
             req = Requirement(dep)
             req_name = canonicalize_name(req.name)
-            if not args.include_self and req_name in metadata_by_project_name:
+            if not args.no_exclude_self and req_name in metadata_by_project_name:
                 continue
             if any(filter.match(req_name) for filter in name_filters_re):
                 continue
