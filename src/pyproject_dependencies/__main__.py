@@ -1,6 +1,4 @@
-#!/usr/bin/env python
-"""Print Requires-Dist metadata of a set of python projects.
-"""
+"""Print Requires-Dist metadata of a set of python projects."""
 
 import argparse
 import os

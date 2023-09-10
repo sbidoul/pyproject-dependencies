@@ -27,3 +27,12 @@ source = "vcs"
 exclude = [
     "/.github",
 ]
+
+
+[tool.ruff]
+fix = true
+select = [
+    "E", "F", "W", "C90", "B", "I", "UP", "RUF", "TCH"
+]
+target-version = "py37"
+ignore = ["C901"]

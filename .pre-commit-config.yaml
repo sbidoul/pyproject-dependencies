@@ -1,0 +1,25 @@
+repos:
+  - repo: https://github.com/psf/black
+    rev: 23.3.0
+    hooks:
+      - id: black
+  - repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+      - id: trailing-whitespace
+      - id: end-of-file-fixer
+      - id: debug-statements
+      - id: fix-encoding-pragma
+        args: ["--remove"]
+      - id: check-case-conflict
+      - id: check-docstring-first
+      - id: check-executables-have-shebangs
+      - id: check-merge-conflict
+      - id: check-symlinks
+      - id: check-xml
+      - id: mixed-line-ending
+        args: ["--fix=lf"]
+  - repo: https://github.com/astral-sh/ruff-pre-commit
+    rev: v0.0.272
+    hooks:
+      - id: ruff
