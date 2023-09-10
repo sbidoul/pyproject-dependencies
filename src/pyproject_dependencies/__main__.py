@@ -6,6 +6,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
+from typing import Mapping, Sequence
 
 from build import BuildBackendException
 from build.util import project_wheel_metadata
@@ -13,11 +14,12 @@ from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
 
 
-def subprocess_runner(cmd, cwd=None, extra_environ=None):
-    """The default method of calling the wrapper subprocess.
-
-    This uses :func:`subprocess.check_call` under the hood.
-    """
+def subprocess_runner(
+    cmd: Sequence[str],
+    cwd: str | None = None,
+    extra_environ: Mapping[str, str] | None = None,
+) -> None:
+    """Run a subprocess and print its output on stderr in case of error only."""
     env = os.environ.copy()
     if extra_environ:
         env.update(extra_environ)
@@ -29,14 +31,12 @@ def subprocess_runner(cmd, cwd=None, extra_environ=None):
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
     )
-    if res.returncode == 0:
-        return
-
-    sys.stderr.write(res.stdout.decode("utf-8", errors="replace"))
-    raise subprocess.CalledProcessError(res.returncode, cmd)
+    if res.returncode != 0:
+        sys.stderr.write(res.stdout.decode("utf-8", errors="replace"))
+        raise subprocess.CalledProcessError(res.returncode, cmd)
 
 
-def main():
+def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument(
         "projects",
