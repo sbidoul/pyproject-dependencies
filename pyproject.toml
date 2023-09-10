@@ -1,0 +1,8 @@
+[project]
+name = "pyproject_dependencies"
+version = "1.0"
+dependencies = ["build", "packaging"]
+description = "Print Requires-Dist metadata of a set of python projects."
+
+[project.urls]
+Homepage = "https://github.com/sbidoul/pyproject-dependencies"
