@@ -1,8 +1,23 @@
+[build-system]
+requires = ["hatchling", "hatch-vcs"]
+build-backend = "hatchling.build"
+
 [project]
-name = "pyproject_dependencies"
-version = "1.0"
+name = "pyproject-dependencies"
 dependencies = ["build", "packaging"]
-description = "Print Requires-Dist metadata of a set of python projects."
+requires-python = ">=3.7"
+readme = "README.md"
+authors = [
+  {name = "Stéphane Bidoul", email = "stephane.bidoul@gmail.com"}
+]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "License :: OSI Approved :: MIT License",
+]
+dynamic = ["version"]
 
 [project.urls]
 Homepage = "https://github.com/sbidoul/pyproject-dependencies"
+
+[tool.hatch.version]
+source = "vcs"
