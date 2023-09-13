@@ -6,7 +6,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Mapping, Sequence, Optional
+from typing import Mapping, Optional, Sequence
 
 from build import BuildBackendException
 from build.util import project_wheel_metadata
