@@ -6,7 +6,7 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Mapping, Sequence
+from typing import Mapping, Sequence, Optional
 
 from build import BuildBackendException
 from build.util import project_wheel_metadata
@@ -16,8 +16,8 @@ from packaging.utils import canonicalize_name
 
 def subprocess_runner(
     cmd: Sequence[str],
-    cwd: str | None = None,
-    extra_environ: Mapping[str, str] | None = None,
+    cwd: Optional[str] = None,
+    extra_environ: Optional[Mapping[str, str]] = None,
 ) -> None:
     """Run a subprocess and print its output on stderr in case of error only."""
     env = os.environ.copy()
