@@ -1,6 +1,6 @@
 # pyproject-dependencies
 
-    usage: pyproject-dependencies [-h] [--no-isolated] [--no-exclude-self] [--ignore-build-errors] [--name-filter REGEX] [PROJECT ...]
+    usage: pyproject-dependencies [-h] [--no-isolation] [--no-exclude-self] [--ignore-build-errors] [--name-filter REGEX] [PROJECT ...]
 
     Print Requires-Dist metadata of a set of python projects.
 
