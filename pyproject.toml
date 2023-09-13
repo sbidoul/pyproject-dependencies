@@ -17,6 +17,9 @@ classifiers = [
 dynamic = ["version"]
 scripts = {pyproject-dependencies = "pyproject_dependencies.__main__:main"}
 
+[project.optional-dependencies]
+test = ["pytest", "pytest-cov", "coverage[toml]", "mypy"]
+
 [project.urls]
 Homepage = "https://github.com/sbidoul/pyproject-dependencies"
 
@@ -28,6 +31,13 @@ exclude = [
     "/.github",
 ]
 
+# mypy
+
+[tool.mypy]
+strict = true
+show_error_codes = true
+
+# ruff
 
 [tool.ruff]
 fix = true
@@ -36,3 +46,9 @@ select = [
 ]
 target-version = "py37"
 ignore = ["C901"]
+
+# coverage
+
+[tool.coverage.run]
+branch = true
+parallel = true
