@@ -17,7 +17,7 @@ authors = [
   {name = "Stéphane Bidoul", email = "stephane.bidoul@gmail.com"}
 ]
 classifiers = [
-    "Development Status :: 3 - Alpha",
+    "Development Status :: 4 - Beta",
     "License :: OSI Approved :: MIT License",
 ]
 dynamic = ["version"]
