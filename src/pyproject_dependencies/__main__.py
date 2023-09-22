@@ -11,6 +11,7 @@ from typing import Any, List, Mapping, Optional, Sequence, TypeVar, Union
 from build.util import project_wheel_metadata
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
+from packaging.version import Version
 from pyproject_metadata import RFC822Message, StandardMetadata
 
 from .compat import Protocol, tomllib
@@ -93,6 +94,10 @@ def pyproject_metadata(
         or "optional-dependencies" in metadata.dynamic
     ):
         return None
+    if not metadata.version:
+        # Fill-in metadata.version because it cannot be dynamic when converting
+        # to rfc822 format. We don't use it as we are only interested in Requires-Dist.
+        metadata.version = Version("0")
     return RFC822MessageAdapter(metadata.as_rfc822())
 
 
