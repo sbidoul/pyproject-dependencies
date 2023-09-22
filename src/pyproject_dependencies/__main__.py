@@ -1,4 +1,4 @@
-"""Print Requires-Dist metadata of a set of python projects."""
+"""Print direct dependencies of a set of python projects."""
 
 import argparse
 import os
@@ -14,6 +14,12 @@ from packaging.utils import canonicalize_name
 from pyproject_metadata import RFC822Message, StandardMetadata
 
 from .compat import Protocol, tomllib
+
+extra_marker_re = re.compile(r"extra\s*==")
+
+
+def _dep_has_extra(dep: str) -> bool:
+    return bool(extra_marker_re.search(dep))
 
 
 def subprocess_runner(
@@ -181,6 +187,8 @@ def main() -> None:
     deps = set()
     for project_metadata in metadata_by_project_name.values():
         for dep in project_metadata.get_all("Requires-Dist", []):
+            if _dep_has_extra(dep):
+                continue
             req = Requirement(dep)
             req_name = canonicalize_name(req.name)
             if not args.no_exclude_self and req_name in metadata_by_project_name:
