@@ -1,5 +1,8 @@
 # pyproject-dependencies
 
+This project is alpha status until [handling of
+extras](https://github.com/sbidoul/pyproject-dependencies/issues/8) has been clarified.
+
     usage: pyproject-dependencies [-h] [--no-isolation] [--no-exclude-self] [--ignore-build-errors] [--name-filter REGEX] [PROJECT ...]
 
     Print Requires-Dist metadata of a set of python projects.
