@@ -4,7 +4,13 @@ build-backend = "hatchling.build"
 
 [project]
 name = "pyproject-dependencies"
-dependencies = ["build", "packaging"]
+dependencies = [
+    "build",
+    "packaging",
+    "pyproject-metadata",
+    "tomli ; python_version<'3.11'",
+    "typing_extensions ; python_version<'3.8'",
+]
 requires-python = ">=3.7"
 readme = "README.md"
 authors = [
