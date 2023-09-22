@@ -6,12 +6,14 @@ import re
 import subprocess
 import sys
 from pathlib import Path
-from typing import Mapping, Optional, Sequence
+from typing import Any, List, Mapping, Optional, Sequence, TypeVar, Union
 
-from build import BuildBackendException
 from build.util import project_wheel_metadata
 from packaging.requirements import Requirement
 from packaging.utils import canonicalize_name
+from pyproject_metadata import RFC822Message, StandardMetadata
+
+from .compat import Protocol, tomllib
 
 
 def subprocess_runner(
@@ -34,6 +36,58 @@ def subprocess_runner(
     if res.returncode != 0:
         sys.stderr.write(res.stdout.decode("utf-8", errors="replace"))
         raise subprocess.CalledProcessError(res.returncode, cmd)
+
+
+_T = TypeVar("_T")
+
+
+class BasicPackageMetadata(Protocol):
+    """A subset of the importlib.metadata.PackageMetadata protocol."""
+
+    def __getitem__(self, key: str) -> str:
+        ...  # pragma: no cover
+
+    def get_all(self, name: str, failobj: _T) -> Union[List[Any], _T]:
+        """
+        Return all values associated with a possibly multi-valued key.
+        """
+
+
+class RFC822MessageAdapter(BasicPackageMetadata):
+    def __init__(self, rfc822_message: RFC822Message):
+        self._rfc822_message = rfc822_message
+
+    def __getitem__(self, key: str) -> str:
+        value = self._rfc822_message.headers[key]
+        if len(value) > 1:
+            raise KeyError(f"multiple values for key {key!r}")
+        return value[0]
+
+    def get_all(self, name: str, failobj: _T) -> Union[List[Any], _T]:
+        return self._rfc822_message.headers.get(name, failobj)
+
+
+def pyproject_metadata(
+    project_path: Path,
+) -> Optional[BasicPackageMetadata]:
+    """Obtain metadata for a project using pyproject.toml.
+
+    Return None if the dependencies are not static or if the project does not use
+    pyproject.toml.
+    """
+    pyproject_path = project_path / "pyproject.toml"
+    if not pyproject_path.is_file():
+        return None
+    parsed_pyproject = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
+    if "project" not in parsed_pyproject:
+        return None
+    metadata = StandardMetadata.from_pyproject(parsed_pyproject)
+    if (
+        "dependencies" in metadata.dynamic
+        or "optional-dependencies" in metadata.dynamic
+    ):
+        return None
+    return RFC822MessageAdapter(metadata.as_rfc822())
 
 
 def main() -> None:
@@ -94,12 +148,14 @@ def main() -> None:
     metadata_by_project_name = {}
     for project_path in project_paths:
         try:
-            project_metadata = project_wheel_metadata(
+            project_metadata = pyproject_metadata(
+                project_path
+            ) or project_wheel_metadata(
                 project_path,
                 not args.no_isolation,
                 runner=subprocess_runner,
             )
-        except BuildBackendException as e:
+        except Exception as e:
             if args.ignore_build_errors:
                 print(
                     f"Warning: ignoring build error in {project_path.resolve()}: {e}",
