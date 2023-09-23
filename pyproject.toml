@@ -52,6 +52,9 @@ select = [
 target-version = "py37"
 ignore = ["C901"]
 
+[tool.ruff.isort]
+known-first-party = ["pyproject_dependencies"]
+
 # coverage
 
 [tool.coverage.run]
