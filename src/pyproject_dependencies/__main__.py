@@ -5,16 +5,15 @@ import os
 import re
 import subprocess
 import sys
+from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, List, Mapping, Optional, Sequence, TypeVar, Union
+from typing import Any, Dict, List, Mapping, Optional, Sequence, Union
 
 from build.util import project_wheel_metadata
 from packaging.requirements import Requirement
-from packaging.utils import canonicalize_name
-from packaging.version import Version
-from pyproject_metadata import RFC822Message, StandardMetadata
+from packaging.utils import NormalizedName, canonicalize_name
 
-from .compat import Protocol, tomllib
+from .compat import tomllib
 
 extra_marker_re = re.compile(r"extra\s*==")
 
@@ -45,38 +44,29 @@ def subprocess_runner(
         raise subprocess.CalledProcessError(res.returncode, cmd)
 
 
-_T = TypeVar("_T")
+class InvalidPyproject(RuntimeError):
+    pass
 
 
-class BasicPackageMetadata(Protocol):
-    """A subset of the importlib.metadata.PackageMetadata protocol."""
-
-    def __getitem__(self, key: str) -> str:
-        ...  # pragma: no cover
-
-    def get_all(self, name: str, failobj: _T) -> Union[List[Any], _T]:
-        """
-        Return all values associated with a possibly multi-valued key.
-        """
+def _validate_pyproject(project: Dict[str, Any]) -> None:
+    if "name" not in project:
+        raise InvalidPyproject("Missing 'name' key")
+    dynamic = project.get("dynamic", [])
+    if "dependencies" in dynamic and "dependencies" in project:
+        raise InvalidPyproject(
+            "'dependencies' key cannot be set while declared as 'dynamic'"
+        )
 
 
-class RFC822MessageAdapter(BasicPackageMetadata):
-    def __init__(self, rfc822_message: RFC822Message):
-        self._rfc822_message = rfc822_message
-
-    def __getitem__(self, key: str) -> str:
-        value = self._rfc822_message.headers[key]
-        if len(value) > 1:
-            raise KeyError(f"multiple values for key {key!r}")
-        return value[0]
-
-    def get_all(self, name: str, failobj: _T) -> Union[List[Any], _T]:
-        return self._rfc822_message.headers.get(name, failobj)
+@dataclass
+class BasicPackageMetadata:
+    name: NormalizedName
+    dependencies: List[str]
 
 
-def pyproject_metadata(
+def metadata_from_pyproject(
     project_path: Path,
-) -> Optional[BasicPackageMetadata]:
+) -> Union[BasicPackageMetadata, None]:
     """Obtain metadata for a project using pyproject.toml.
 
     Return None if the dependencies are not static or if the project does not use
@@ -84,21 +74,36 @@ def pyproject_metadata(
     """
     pyproject_path = project_path / "pyproject.toml"
     if not pyproject_path.is_file():
+        # no pyproject.toml, need to use the default build backend
         return None
     parsed_pyproject = tomllib.loads(pyproject_path.read_text(encoding="utf-8"))
-    if "project" not in parsed_pyproject:
+    project = parsed_pyproject.get("project")
+    if not project:
+        # no project table, need to use build backend
         return None
-    metadata = StandardMetadata.from_pyproject(parsed_pyproject)
-    if (
-        "dependencies" in metadata.dynamic
-        or "optional-dependencies" in metadata.dynamic
-    ):
+    _validate_pyproject(project)
+    if "dependencies" in project.get("dynamic", []):
+        # dynamic dependencies, need to use build backend
         return None
-    if not metadata.version:
-        # Fill-in metadata.version because it cannot be dynamic when converting
-        # to rfc822 format. We don't use it as we are only interested in Requires-Dist.
-        metadata.version = Version("0")
-    return RFC822MessageAdapter(metadata.as_rfc822())
+    return BasicPackageMetadata(
+        name=canonicalize_name(project["name"]),
+        dependencies=project.get("dependencies", []),
+    )
+
+
+def metadata_from_build_backend(
+    project_path: Path, isolated: bool
+) -> BasicPackageMetadata:
+    metadata = project_wheel_metadata(
+        project_path,
+        isolated,
+        runner=subprocess_runner,
+    )
+    requires_dist = metadata.get_all("Requires-Dist", [])
+    dependencies = [dep for dep in requires_dist if not _dep_has_extra(dep)]
+    return BasicPackageMetadata(
+        name=canonicalize_name(metadata["Name"]), dependencies=dependencies
+    )
 
 
 def main() -> None:
@@ -155,16 +160,15 @@ def main() -> None:
     name_filters_re = []
     for name_filter in args.name_filters or []:
         name_filters_re.append(re.compile(name_filter))
-    # ask the build backend to prepare metadata for each projects
+    # obtain the metadata we need for each projects
     metadata_by_project_name = {}
     for project_path in project_paths:
         try:
-            project_metadata = pyproject_metadata(
+            project_metadata = metadata_from_pyproject(
                 project_path
-            ) or project_wheel_metadata(
+            ) or metadata_from_build_backend(
                 project_path,
                 not args.no_isolation,
-                runner=subprocess_runner,
             )
         except Exception as e:
             if args.ignore_build_errors:
@@ -179,21 +183,18 @@ def main() -> None:
                     file=sys.stderr,
                 )
                 sys.exit(1)
-        project_name = canonicalize_name(project_metadata["Name"])
-        if project_name in metadata_by_project_name:
+        if project_metadata.name in metadata_by_project_name:
             print(
-                f"Warning: {project_name} already seen, "
+                f"Warning: {project_metadata.name} already seen, "
                 f"ignoring {project_path.resolve()}",
                 file=sys.stderr,
             )
             continue
-        metadata_by_project_name[project_name] = project_metadata
+        metadata_by_project_name[project_metadata.name] = project_metadata
     # filter
     deps = set()
     for project_metadata in metadata_by_project_name.values():
-        for dep in project_metadata.get_all("Requires-Dist", []):
-            if _dep_has_extra(dep):
-                continue
+        for dep in project_metadata.dependencies:
             req = Requirement(dep)
             req_name = canonicalize_name(req.name)
             if not args.no_exclude_self and req_name in metadata_by_project_name:
