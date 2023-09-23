@@ -15,11 +15,11 @@ from packaging.utils import NormalizedName, canonicalize_name
 
 from .compat import tomllib
 
-extra_marker_re = re.compile(r"extra\s*==")
+extra_marker_re = re.compile(r".+extra\s*==")
 
 
 def _dep_has_extra(dep: str) -> bool:
-    return bool(extra_marker_re.search(dep))
+    return bool(extra_marker_re.match(dep))
 
 
 def subprocess_runner(
