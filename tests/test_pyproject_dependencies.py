@@ -76,6 +76,27 @@ def test_basic(tmp_path: Path) -> None:
     assert result.stdout == "d1\nd2\nd3\n"
 
 
+def test_already_seen(tmp_path: Path) -> None:
+    _make_project(tmp_path, name="p_1", deps=["d1", "d2"])
+    duplicate_path = tmp_path / "dup"
+    duplicate_path.mkdir()
+    _make_project(duplicate_path, name="P_1", deps=["d1", "d3", "p1"])
+    result = subprocess.run(
+        [
+            sys.executable,
+            "-m",
+            "pyproject_dependencies",
+            str(tmp_path / "p_1"),
+            str(duplicate_path / "P_1" / "pyproject.toml"),
+        ],
+        check=True,
+        text=True,
+        capture_output=True,
+    )
+    assert result.stdout == "d1\nd2\n"
+    assert "p-1 already seen" in result.stderr
+
+
 def test_basic_legacy(tmp_path: Path) -> None:
     _make_legacy_project(tmp_path, name="p1", deps=["d1", "d2"])
     _make_legacy_project(tmp_path, name="p2", deps=["d1", "d3", "p1"])
