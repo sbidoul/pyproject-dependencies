@@ -16,24 +16,20 @@ def _make_project(
     project_path.mkdir()
     pyproject_toml = project_path / "pyproject.toml"
     deps_str = '", "'.join(deps)
-    pyproject = textwrap.dedent(
-        f"""
+    pyproject = textwrap.dedent(f"""
             [project]
             name = "{name}"
             version = "1.0"
             dependencies = ["{deps_str}"]
-        """
-    )
+        """)
     if optional_dep is not None:
         assert len(optional_dep) == 1
         optional_dep_name, optional_dep_deps = next(iter(optional_dep.items()))
         optional_dep_deps_str = '", "'.join(optional_dep_deps)
-        pyproject += textwrap.dedent(
-            f"""
+        pyproject += textwrap.dedent(f"""
                 [project.optional-dependencies]
                 {optional_dep_name} = ["{optional_dep_deps_str}"]
-            """
-        )
+            """)
     pyproject_toml.write_text(pyproject)
 
 
@@ -43,9 +39,7 @@ def _make_legacy_project(tmp_path: Path, name: str, deps: List[str]) -> None:
     project_path.mkdir()
     setup_py = project_path / "setup.py"
     deps_str = '", "'.join(deps)
-    setup_py.write_text(
-        textwrap.dedent(
-            f"""
+    setup_py.write_text(textwrap.dedent(f"""
             from setuptools import setup
 
             setup(
@@ -53,9 +47,7 @@ def _make_legacy_project(tmp_path: Path, name: str, deps: List[str]) -> None:
                 version="1.0",
                 install_requires=["{deps_str}"],
             )
-            """
-        )
-    )
+            """))
 
 
 def test_basic(tmp_path: Path) -> None:
